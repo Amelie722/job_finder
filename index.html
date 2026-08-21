@@ -274,7 +274,10 @@
           .sort((a, b) => b.score - a.score || a.index - b.index);
 
         rankedCards.forEach(({ card, reasons }) => {
-          card.hidden = selectedLocation !== "" && card.dataset.region !== selectedLocation;
+          const jobRegions = card.dataset.region
+            .split(",")
+            .map((region) => region.trim());
+          card.hidden = selectedLocation !== "" && !jobRegions.includes(selectedLocation);
           card.querySelector(".recommendation-reason").textContent =
             `추천 이유: ${reasons.join(" · ") || "추천 규칙 미일치"}`;
           jobList.append(card);
@@ -290,6 +293,9 @@
         .then((jobs) => {
           renderJobs(jobs);
           applyFiltersAndRecommendations();
+        })
+        .catch(() => {
+          jobList.textContent = "공고 정보를 불러오지 못했습니다.";
         });
     </script>
   </body>
