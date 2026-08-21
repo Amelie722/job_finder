@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>내 채용공고</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: #172033;
+        background: #f3f6fb;
+        font-family: Pretendard, "Noto Sans KR", Arial, sans-serif;
+      }
+
+      main {
+        width: min(100%, 720px);
+        padding: 48px;
+        border: 1px solid #e2e8f2;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 18px 50px rgba(31, 49, 79, 0.09);
+      }
+
+      h1 {
+        margin: 0 0 32px;
+        font-size: clamp(30px, 5vw, 44px);
+        letter-spacing: -0.04em;
+      }
+
+      .fields {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 9px;
+        color: #4c5870;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      input {
+        width: 100%;
+        height: 48px;
+        padding: 0 14px;
+        border: 1px solid #ccd5e3;
+        border-radius: 12px;
+        color: #172033;
+        background: #ffffff;
+        font: inherit;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: #315ee9;
+        box-shadow: 0 0 0 3px rgba(49, 94, 233, 0.12);
+      }
+
+      button {
+        width: 100%;
+        height: 52px;
+        margin-top: 24px;
+        border: 0;
+        border-radius: 13px;
+        color: #ffffff;
+        background: #315ee9;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding: 32px 24px;
+        }
+
+        .fields {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>내 채용공고</h1>
+      <div class="fields">
+        <label>
+          학과
+          <input type="text" name="department" placeholder="학과 입력" />
+        </label>
+        <label>
+          희망 지역
+          <input type="text" name="location" placeholder="희망 지역 입력" />
+        </label>
+        <label>
+          졸업 시기
+          <input type="text" name="graduation" placeholder="졸업 시기 입력" />
+        </label>
+      </div>
+      <button type="button">검색</button>
+    </main>
+  </body>
+</html>
