@@ -132,6 +132,17 @@
         text-underline-offset: 3px;
       }
 
+      .keyword-field {
+        margin-top: 16px;
+      }
+
+      .recommendation-reason {
+        margin: 0 0 14px;
+        color: #315ee9;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
       @media (max-width: 640px) {
         main {
           padding: 32px 24px;
@@ -167,14 +178,19 @@
           <input type="text" name="graduation" placeholder="졸업 시기 입력" />
         </label>
       </div>
+      <label class="keyword-field">
+        공고 검색어
+        <input id="keyword" type="text" name="keyword" placeholder="예: 인턴, 기획" />
+      </label>
       <button id="search-button" type="button">검색</button>
 
       <section class="jobs" aria-labelledby="job-list-title">
         <h2 id="job-list-title">공고 목록</h2>
         <div class="job-list">
-          <article class="job-card" data-region="대전">
+          <article class="job-card" data-region="대전" data-remote="false" data-job="정책 기획" data-duties="청년 정책 조사와 프로젝트 운영">
             <p class="organization">대전미래연구원</p>
             <h3>청년 정책 인턴 채용</h3>
+            <p class="recommendation-reason"></p>
             <div class="job-details">
               <span>근무지역: 대전</span>
               <span>마감일: 2026. 09. 05.</span>
@@ -182,9 +198,10 @@
             <a class="source-link" href="https://example.com/jobs/daejeon" target="_blank" rel="noreferrer">원문 링크</a>
           </article>
 
-          <article class="job-card" data-region="세종">
+          <article class="job-card" data-region="세종" data-remote="false" data-job="서비스 운영" data-duties="도시 서비스 운영과 현장 지원">
             <p class="organization">세종도시지원센터</p>
             <h3>도시 서비스 운영 신입 채용</h3>
+            <p class="recommendation-reason"></p>
             <div class="job-details">
               <span>근무지역: 세종</span>
               <span>마감일: 2026. 09. 08.</span>
@@ -192,9 +209,10 @@
             <a class="source-link" href="https://example.com/jobs/sejong" target="_blank" rel="noreferrer">원문 링크</a>
           </article>
 
-          <article class="job-card" data-region="충남">
+          <article class="job-card" data-region="충남" data-remote="false" data-job="프로젝트 기획" data-duties="지역 협력 프로젝트 기획과 운영">
             <p class="organization">충남사회혁신원</p>
             <h3>지역 협력 프로젝트 인턴 채용</h3>
+            <p class="recommendation-reason"></p>
             <div class="job-details">
               <span>근무지역: 충남</span>
               <span>마감일: 2026. 09. 12.</span>
@@ -202,9 +220,10 @@
             <a class="source-link" href="https://example.com/jobs/chungnam" target="_blank" rel="noreferrer">원문 링크</a>
           </article>
 
-          <article class="job-card" data-region="서울">
+          <article class="job-card" data-region="서울" data-remote="true" data-job="콘텐츠 기획" data-duties="문화 콘텐츠 기획과 자료 조사">
             <p class="organization">서울문화기획단</p>
             <h3>문화 콘텐츠 기획 신입 채용</h3>
+            <p class="recommendation-reason"></p>
             <div class="job-details">
               <span>근무지역: 서울</span>
               <span>마감일: 2026. 09. 18.</span>
@@ -212,9 +231,10 @@
             <a class="source-link" href="https://example.com/jobs/seoul" target="_blank" rel="noreferrer">원문 링크</a>
           </article>
 
-          <article class="job-card" data-region="부산">
+          <article class="job-card" data-region="부산" data-remote="false" data-job="관광 정보 운영" data-duties="관광 정보 정리와 운영 지원">
             <p class="organization">부산관광데이터랩</p>
             <h3>관광 정보 운영 인턴 채용</h3>
+            <p class="recommendation-reason"></p>
             <div class="job-details">
               <span>근무지역: 부산</span>
               <span>마감일: 2026. 09. 22.</span>
@@ -226,16 +246,60 @@
     </main>
     <script>
       const locationSelect = document.querySelector("#location");
+      const keywordInput = document.querySelector("#keyword");
       const searchButton = document.querySelector("#search-button");
-      const jobCards = document.querySelectorAll(".job-card");
+      const jobList = document.querySelector(".job-list");
+      const jobCards = Array.from(document.querySelectorAll(".job-card"));
+      const priorityRegions = ["대전", "세종", "충남"];
+
+      function getRecommendation(card) {
+        const reasons = [];
+        let score = 0;
+        const keyword = keywordInput.value.trim().toLowerCase();
+
+        if (priorityRegions.includes(card.dataset.region)) {
+          score += 1;
+          reasons.push("지역 우선 규칙");
+        } else if (card.dataset.remote === "true") {
+          score += 1;
+          reasons.push("지역 외 재택 가능 규칙");
+        }
+
+        const searchableText = [
+          card.querySelector("h3").textContent,
+          card.dataset.job,
+          card.dataset.duties,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (keyword && searchableText.includes(keyword)) {
+          score += 1;
+          reasons.push("검색 키워드 일치 규칙");
+        }
+
+        return { score, reasons };
+      }
+
+      function applyFiltersAndRecommendations() {
+        const selectedLocation = locationSelect.value;
+        const rankedCards = jobCards
+          .map((card, index) => ({ card, index, ...getRecommendation(card) }))
+          .sort((a, b) => b.score - a.score || a.index - b.index);
+
+        rankedCards.forEach(({ card, reasons }) => {
+          card.hidden = selectedLocation !== "" && card.dataset.region !== selectedLocation;
+          card.querySelector(".recommendation-reason").textContent =
+            `추천 이유: ${reasons.join(" · ") || "추천 규칙 미일치"}`;
+          jobList.append(card);
+        });
+      }
 
       searchButton.addEventListener("click", () => {
-        const selectedLocation = locationSelect.value;
-
-        jobCards.forEach((card) => {
-          card.hidden = selectedLocation !== "" && card.dataset.region !== selectedLocation;
-        });
+        applyFiltersAndRecommendations();
       });
+
+      applyFiltersAndRecommendations();
     </script>
   </body>
 </html>
