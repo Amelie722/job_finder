@@ -41,9 +41,14 @@
       .job-details span:first-child { grid-column: 2; }
       .job-details span:last-child { grid-column: 3; }
       .source-link { grid-column: 3; color: #126b84; font-size: 14px; font-weight: 800; text-underline-offset: 3px; }
-      @media (max-width: 900px) { .fields { grid-template-columns: repeat(2, 1fr); } .keyword-field { display: grid; } button { width: 100%; } .job-card { grid-template-columns: 1fr 150px; } .job-details span:last-child, .source-link { grid-column: 2; } }
-      @media (max-width: 640px) { .site-header { height: 58px; } .site-header nav { display: none; } main { width: min(100% - 32px, 1280px); padding-top: 40px; } .page-intro { display: block; } .fields { grid-template-columns: 1fr; } .job-card { grid-template-columns: 1fr; gap: 10px; } .job-details span:first-child, .job-details span:last-child, .source-link { grid-column: 1; } }
+      .job-actions { grid-column: 3; display: grid; gap: 10px; justify-items: start; }
+      .job-actions .source-link { grid-column: auto; }
+      .scrap-button { width: auto; min-width: 68px; height: 34px; padding: 0 13px; border: 1px solid #126b84; border-radius: 7px; color: #126b84; background: #fff; font-size: 13px; }
+      .scrap-button:hover, .scrap-button:disabled { color: #fff; background: #126b84; }
+      @media (max-width: 900px) { .fields { grid-template-columns: repeat(2, 1fr); } .keyword-field { display: grid; } button { width: 100%; } .job-card { grid-template-columns: 1fr 150px; } .job-details span:last-child, .job-actions { grid-column: 2; } }
+      @media (max-width: 640px) { .site-header { height: 58px; } .site-header nav { display: none; } main { width: min(100% - 32px, 1280px); padding-top: 40px; } .page-intro { display: block; } .fields { grid-template-columns: 1fr; } .job-card { grid-template-columns: 1fr; gap: 10px; } .job-details span:first-child, .job-details span:last-child, .job-actions { grid-column: 1; } }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
     <header class="site-header">
@@ -89,6 +94,10 @@
       </section>
     </main>
     <script>
+      const supabaseClient = supabase.createClient(
+        "https://lmrofzagspaopbdiqcft.supabase.co",
+        "sb_publishable_Ejkkjy_aTlARuyhlVGOVig_gy_i0ICI"
+      );
       const locationSelect = document.querySelector("#location");
       const keywordInput = document.querySelector("#keyword");
       const searchButton = document.querySelector("#search-button");
@@ -106,13 +115,14 @@
         jobs.forEach((job) => {
           const card = document.createElement("article");
           card.className = "job-card";
-          card.dataset.region = job.workRgnNmLst || "";
+          card.dataset.region = job.workrgnnmlst || "";
+          card.dataset.jobId = job.recrutpblntsn || "";
           card.dataset.remote = "";
           card.dataset.job = "";
           card.dataset.duties = "";
 
-          const organization = createTextElement("p", "organization", job.instNm);
-          const title = createTextElement("h3", "", job.recrutPbancTtl);
+          const organization = createTextElement("p", "organization", job.instnm);
+          const title = createTextElement("h3", "", job.recrutpbancttl);
           const reason = createTextElement("p", "recommendation-reason", "");
           const mainInfo = document.createElement("div");
           mainInfo.className = "job-main";
@@ -120,21 +130,27 @@
           const details = document.createElement("div");
           details.className = "job-details";
           details.append(
-            createTextElement("span", "", `근무지역: ${job.workRgnNmLst || ""}`),
-            createTextElement("span", "", `마감일: ${job.pbancEndYmd || ""}`)
+            createTextElement("span", "", `근무지역: ${job.workrgnnmlst || ""}`),
+            createTextElement("span", "", `마감일: ${job.pbancendymd || ""}`)
           );
 
-          const source = job.srcUrl
+          const source = job.srcurl
             ? Object.assign(document.createElement("a"), {
                 className: "source-link",
-                href: job.srcUrl,
+                href: job.srcurl,
                 target: "_blank",
                 rel: "noreferrer",
                 textContent: "원문 링크",
-              })
+            })
             : createTextElement("span", "source-link", "");
+          const scrapButton = createTextElement("button", "scrap-button", "담기");
+          scrapButton.type = "button";
+          scrapButton.dataset.jobId = job.recrutpblntsn || "";
+          const actions = document.createElement("div");
+          actions.className = "job-actions";
+          actions.append(source, scrapButton);
 
-          card.append(mainInfo, details, source);
+          card.append(mainInfo, details, actions);
           jobList.append(card);
         });
       }
@@ -191,10 +207,33 @@
         applyFiltersAndRecommendations();
       });
 
-      fetch("/api/jobs")
-        .then((response) => {
-          if (!response.ok) throw new Error("채용 공고 요청 실패");
-          return response.json();
+      jobList.addEventListener("click", async (event) => {
+        const button = event.target.closest(".scrap-button");
+        if (!button || !button.dataset.jobId) return;
+
+        button.disabled = true;
+        button.textContent = "담는 중";
+        const { error } = await supabaseClient
+          .from("scraps")
+          .insert({ job_recrutpblntsn: Number(button.dataset.jobId) });
+
+        if (error && error.code !== "23505") {
+          button.disabled = false;
+          button.textContent = "담기";
+          alert("공고를 담지 못했습니다.");
+          return;
+        }
+
+        button.textContent = "담김";
+      });
+
+      supabaseClient
+        .from("jobs")
+        .select("*")
+        .order("pbancendymd", { ascending: true })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
         })
         .then((jobs) => {
           renderJobs(jobs);
