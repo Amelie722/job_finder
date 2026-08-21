@@ -48,7 +48,23 @@
       .job-actions .source-link { grid-column: auto; }
       .scrap-button { width: auto; min-width: 68px; height: 34px; padding: 0 13px; border: 1px solid #126b84; border-radius: 7px; color: #126b84; background: #fff; font-size: 13px; }
       .scrap-button:hover, .scrap-button:disabled { color: #fff; background: #126b84; }
-      @media (max-width: 900px) { .fields { grid-template-columns: repeat(2, 1fr); } .keyword-field { display: grid; } button { width: 100%; } .job-card { grid-template-columns: 1fr 150px; } .job-details span:last-child, .job-actions { grid-column: 2; } }
+      .page[hidden] { display: none; }
+      .board-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 38px; }
+      .board-form { padding: 24px; border: 1px solid #dbe3ed; border-radius: 14px; background: #fff; }
+      .board-form h2, .board-list h2 { margin: 0 0 8px; font-size: 26px; letter-spacing: -0.045em; }
+      .board-form p { margin: 0 0 20px; color: #64748b; font-size: 14px; line-height: 1.6; }
+      .board-form textarea { min-height: 160px; padding: 14px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 9px; font: inherit; }
+      .board-form input, .board-form textarea { width: 100%; }
+      .board-form button { margin-top: 18px; }
+      .board-list { display: grid; gap: 0; border-top: 2px solid #1e293b; }
+      .board-post { padding: 22px 0; border-bottom: 1px solid #dbe3ed; }
+      .board-post h3 { margin: 0 0 9px; font-size: 18px; }
+      .board-post p { margin: 0; color: #475569; white-space: pre-wrap; line-height: 1.65; }
+      .board-post footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; color: #94a3b8; font-size: 13px; }
+      .board-post footer div { display: flex; gap: 8px; }
+      .board-post footer button { width: auto; min-width: 54px; height: 32px; margin: 0; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 7px; color: #475569; background: #fff; font-size: 12px; }
+      .board-post footer button:hover { color: #fff; background: #475569; }
+      @media (max-width: 900px) { .fields { grid-template-columns: repeat(2, 1fr); } .keyword-field { display: grid; } button { width: 100%; } .job-card { grid-template-columns: 1fr 150px; } .job-details span:last-child, .job-actions { grid-column: 2; } .board-layout { grid-template-columns: 1fr; } }
       @media (max-width: 640px) { .site-header { height: 58px; } .site-header nav { display: none; } main { width: min(100% - 32px, 1280px); padding-top: 40px; } .page-intro { display: block; } .fields { grid-template-columns: 1fr; } .job-card { grid-template-columns: 1fr; gap: 10px; } .job-details span:first-child, .job-details span:last-child, .job-actions { grid-column: 1; } }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -56,9 +72,10 @@
   <body>
     <header class="site-header">
       <h2 class="brand">내 채용공고</h2>
-      <nav aria-label="주 메뉴"><span>채용정보</span><span>커리어 가이드</span><span>기업 탐색</span><button id="scraps-menu" class="nav-button" type="button">담은 공고</button></nav>
+      <nav aria-label="주 메뉴"><span>채용정보</span><span>커리어 가이드</span><span>기업 탐색</span><button id="scraps-menu" class="nav-button" type="button">담은 공고</button><button id="board-menu" class="nav-button" type="button">고민 게시판</button></nav>
     </header>
     <main>
+      <section id="jobs-page" class="page">
       <div class="page-intro">
         <div><h1>나에게 맞는 공고를 찾아보세요</h1><p>관심 조건에 맞춰 공공기관 채용 공고를 한눈에 확인할 수 있어요.</p></div>
       </div>
@@ -95,6 +112,14 @@
         <div class="results-heading"><div><h2 id="job-list-title">공고 목록</h2><p class="jobs-summary">조건에 맞는 채용 공고를 확인해 보세요.</p></div></div>
         <div class="job-list"></div>
       </section>
+      </section>
+      <section id="board-page" class="page" hidden>
+        <div class="page-intro"><div><h1>익명 고민 게시판</h1><p>취업 준비와 대학 생활의 고민을 익명으로 나눠보세요.</p></div></div>
+        <div class="board-layout">
+          <section class="board-list" aria-labelledby="board-title"><h2 id="board-title">최근 글</h2><div id="board-posts"></div></section>
+          <form id="board-form" class="board-form"><h2 id="board-form-heading">글쓰기</h2><p>수정·삭제할 때 사용할 비밀번호를 입력해 주세요. 비밀번호는 암호화되어 저장됩니다.</p><label>제목<input id="board-title-input" maxlength="100" required /></label><label>내용<textarea id="board-content-input" maxlength="3000" required></textarea></label><label>비밀번호<input id="board-password-input" type="password" minlength="4" required /></label><button id="board-submit-button" type="submit">익명으로 등록</button><button id="board-cancel-button" type="button" hidden>수정 취소</button></form>
+        </div>
+      </section>
     </main>
     <script>
       const supabaseClient = supabase.createClient(
@@ -106,6 +131,17 @@
       const searchButton = document.querySelector("#search-button");
       const jobList = document.querySelector(".job-list");
       const scrapsMenu = document.querySelector("#scraps-menu");
+      const boardMenu = document.querySelector("#board-menu");
+      const jobsPage = document.querySelector("#jobs-page");
+      const boardPage = document.querySelector("#board-page");
+      const boardPosts = document.querySelector("#board-posts");
+      const boardForm = document.querySelector("#board-form");
+      const boardFormHeading = document.querySelector("#board-form-heading");
+      const boardTitleInput = document.querySelector("#board-title-input");
+      const boardContentInput = document.querySelector("#board-content-input");
+      const boardPasswordInput = document.querySelector("#board-password-input");
+      const boardSubmitButton = document.querySelector("#board-submit-button");
+      const boardCancelButton = document.querySelector("#board-cancel-button");
       const priorityRegions = ["대전", "세종", "충남"];
       let showingScraps = false;
       let savedJobIds = new Set();
@@ -149,9 +185,11 @@
                 textContent: "원문 링크",
             })
             : createTextElement("span", "source-link", "");
-          const scrapButton = createTextElement("button", "scrap-button", "담기");
+          const isSaved = savedJobIds.has(Number(job.recrutpblntsn));
+          const scrapButton = createTextElement("button", "scrap-button", isSaved ? "담김" : "담기");
           scrapButton.type = "button";
           scrapButton.dataset.jobId = job.recrutpblntsn || "";
+          scrapButton.dataset.scrapped = String(isSaved);
           const actions = document.createElement("div");
           actions.className = "job-actions";
           actions.append(source, scrapButton);
@@ -220,20 +258,28 @@
         if (!button || !button.dataset.jobId) return;
 
         button.disabled = true;
-        button.textContent = "담는 중";
-        const { error } = await supabaseClient
-          .from("scraps")
-          .insert({ job_recrutpblntsn: Number(button.dataset.jobId) });
+        const jobId = Number(button.dataset.jobId);
+        const isScrapped = button.dataset.scrapped === "true";
+        button.textContent = isScrapped ? "취소 중" : "담는 중";
+        const { error } = isScrapped
+          ? await supabaseClient.from("scraps").delete().eq("job_recrutpblntsn", jobId)
+          : await supabaseClient.from("scraps").insert({ job_recrutpblntsn: jobId });
 
-        if (error && error.code !== "23505") {
+        const canIgnoreDuplicate = !isScrapped && error?.code === "23505";
+        if (error && !canIgnoreDuplicate) {
           button.disabled = false;
-          button.textContent = "담기";
-          alert("공고를 담지 못했습니다.");
+          button.textContent = isScrapped ? "담김" : "담기";
+          alert(isScrapped ? "담은 공고를 취소하지 못했습니다." : "공고를 담지 못했습니다.");
           return;
         }
 
-        button.textContent = "담김";
-        savedJobIds.add(Number(button.dataset.jobId));
+        const nowScrapped = !isScrapped;
+        button.disabled = false;
+        button.dataset.scrapped = String(nowScrapped);
+        button.textContent = nowScrapped ? "담김" : "담기";
+        if (nowScrapped) savedJobIds.add(jobId);
+        else savedJobIds.delete(jobId);
+        if (showingScraps) applyFiltersAndRecommendations();
       });
 
       scrapsMenu.addEventListener("click", async () => {
@@ -260,16 +306,141 @@
         applyFiltersAndRecommendations();
       });
 
-      supabaseClient
-        .from("jobs")
-        .select("*")
-        .order("pbancendymd", { ascending: true })
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-        .then((jobs) => {
-          renderJobs(jobs);
+      function formatBoardDate(value) {
+        return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+      }
+
+      function resetBoardForm() {
+        boardForm.reset();
+        delete boardForm.dataset.editId;
+        boardFormHeading.textContent = "글쓰기";
+        boardSubmitButton.textContent = "익명으로 등록";
+        boardCancelButton.hidden = true;
+      }
+
+      function renderBoardPosts(posts) {
+        boardPosts.replaceChildren();
+        if (!posts.length) {
+          boardPosts.textContent = "아직 작성된 고민이 없습니다. 첫 글을 남겨 보세요.";
+          return;
+        }
+        posts.forEach((post) => {
+          const article = document.createElement("article");
+          article.className = "board-post";
+          const title = createTextElement("h3", "", post.title);
+          const content = createTextElement("p", "", post.content);
+          const date = createTextElement("span", "", formatBoardDate(post.created_at));
+          const controls = document.createElement("div");
+          const edit = createTextElement("button", "", "수정");
+          edit.type = "button";
+          edit.dataset.action = "edit";
+          edit.dataset.id = post.id;
+          const remove = createTextElement("button", "", "삭제");
+          remove.type = "button";
+          remove.dataset.action = "delete";
+          remove.dataset.id = post.id;
+          controls.append(edit, remove);
+          const footer = document.createElement("footer");
+          footer.append(date, controls);
+          article.append(title, content, footer);
+          boardPosts.append(article);
+        });
+      }
+
+      async function loadBoardPosts() {
+        boardPosts.textContent = "게시글을 불러오는 중입니다.";
+        const { data, error } = await supabaseClient.rpc("list_board_posts");
+        if (error) {
+          console.error(error);
+          boardPosts.textContent = "게시글을 불러오지 못했습니다.";
+          return;
+        }
+        renderBoardPosts(data || []);
+      }
+
+      function showBoard() {
+        jobsPage.hidden = true;
+        boardPage.hidden = false;
+        boardMenu.classList.add("active");
+        boardMenu.textContent = "채용 공고";
+        loadBoardPosts();
+      }
+
+      function showJobs() {
+        boardPage.hidden = true;
+        jobsPage.hidden = false;
+        boardMenu.classList.remove("active");
+        boardMenu.textContent = "고민 게시판";
+      }
+
+      boardMenu.addEventListener("click", () => {
+        if (boardPage.hidden) showBoard();
+        else showJobs();
+      });
+
+      boardForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const isEditing = Boolean(boardForm.dataset.editId);
+        boardSubmitButton.disabled = true;
+        boardSubmitButton.textContent = isEditing ? "저장 중" : "등록 중";
+        const params = {
+          p_title: boardTitleInput.value.trim(),
+          p_content: boardContentInput.value.trim(),
+          p_password: boardPasswordInput.value,
+        };
+        if (isEditing) params.p_id = Number(boardForm.dataset.editId);
+        const { error } = await supabaseClient.rpc(isEditing ? "update_board_post" : "create_board_post", params);
+        if (error) {
+          console.error(error);
+          alert(isEditing ? "수정하지 못했습니다. 비밀번호를 확인해 주세요." : "글을 등록하지 못했습니다.");
+        } else {
+          resetBoardForm();
+          await loadBoardPosts();
+        }
+        boardSubmitButton.disabled = false;
+        if (!boardForm.dataset.editId) boardSubmitButton.textContent = "익명으로 등록";
+      });
+
+      boardCancelButton.addEventListener("click", resetBoardForm);
+
+      boardPosts.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const postId = Number(button.dataset.id);
+        if (button.dataset.action === "edit") {
+          const post = button.closest(".board-post");
+          boardForm.dataset.editId = String(postId);
+          boardTitleInput.value = post.querySelector("h3").textContent;
+          boardContentInput.value = post.querySelector("p").textContent;
+          boardPasswordInput.value = "";
+          boardFormHeading.textContent = "글 수정";
+          boardSubmitButton.textContent = "수정 저장";
+          boardCancelButton.hidden = false;
+          boardTitleInput.focus();
+          return;
+        }
+        const password = window.prompt("삭제하려면 작성할 때 사용한 비밀번호를 입력하세요.");
+        if (!password) return;
+        button.disabled = true;
+        const { error } = await supabaseClient.rpc("delete_board_post", { p_id: postId, p_password: password });
+        if (error) {
+          console.error(error);
+          alert("삭제하지 못했습니다. 비밀번호를 확인해 주세요.");
+          button.disabled = false;
+          return;
+        }
+        await loadBoardPosts();
+      });
+
+      Promise.all([
+        supabaseClient.from("jobs").select("*").order("pbancendymd", { ascending: true }),
+        supabaseClient.from("scraps").select("job_recrutpblntsn"),
+      ])
+        .then(([jobsResult, scrapsResult]) => {
+          if (jobsResult.error) throw jobsResult.error;
+          if (scrapsResult.error) throw scrapsResult.error;
+          savedJobIds = new Set((scrapsResult.data || []).map((scrap) => Number(scrap.job_recrutpblntsn)));
+          renderJobs(jobsResult.data || []);
           applyFiltersAndRecommendations();
         })
         .catch(() => {
