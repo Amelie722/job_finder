@@ -186,62 +186,7 @@
 
       <section class="jobs" aria-labelledby="job-list-title">
         <h2 id="job-list-title">공고 목록</h2>
-        <div class="job-list">
-          <article class="job-card" data-region="대전" data-remote="false" data-job="정책 기획" data-duties="청년 정책 조사와 프로젝트 운영">
-            <p class="organization">대전미래연구원</p>
-            <h3>청년 정책 인턴 채용</h3>
-            <p class="recommendation-reason"></p>
-            <div class="job-details">
-              <span>근무지역: 대전</span>
-              <span>마감일: 2026. 09. 05.</span>
-            </div>
-            <a class="source-link" href="https://example.com/jobs/daejeon" target="_blank" rel="noreferrer">원문 링크</a>
-          </article>
-
-          <article class="job-card" data-region="세종" data-remote="false" data-job="서비스 운영" data-duties="도시 서비스 운영과 현장 지원">
-            <p class="organization">세종도시지원센터</p>
-            <h3>도시 서비스 운영 신입 채용</h3>
-            <p class="recommendation-reason"></p>
-            <div class="job-details">
-              <span>근무지역: 세종</span>
-              <span>마감일: 2026. 09. 08.</span>
-            </div>
-            <a class="source-link" href="https://example.com/jobs/sejong" target="_blank" rel="noreferrer">원문 링크</a>
-          </article>
-
-          <article class="job-card" data-region="충남" data-remote="false" data-job="프로젝트 기획" data-duties="지역 협력 프로젝트 기획과 운영">
-            <p class="organization">충남사회혁신원</p>
-            <h3>지역 협력 프로젝트 인턴 채용</h3>
-            <p class="recommendation-reason"></p>
-            <div class="job-details">
-              <span>근무지역: 충남</span>
-              <span>마감일: 2026. 09. 12.</span>
-            </div>
-            <a class="source-link" href="https://example.com/jobs/chungnam" target="_blank" rel="noreferrer">원문 링크</a>
-          </article>
-
-          <article class="job-card" data-region="서울" data-remote="true" data-job="콘텐츠 기획" data-duties="문화 콘텐츠 기획과 자료 조사">
-            <p class="organization">서울문화기획단</p>
-            <h3>문화 콘텐츠 기획 신입 채용</h3>
-            <p class="recommendation-reason"></p>
-            <div class="job-details">
-              <span>근무지역: 서울</span>
-              <span>마감일: 2026. 09. 18.</span>
-            </div>
-            <a class="source-link" href="https://example.com/jobs/seoul" target="_blank" rel="noreferrer">원문 링크</a>
-          </article>
-
-          <article class="job-card" data-region="부산" data-remote="false" data-job="관광 정보 운영" data-duties="관광 정보 정리와 운영 지원">
-            <p class="organization">부산관광데이터랩</p>
-            <h3>관광 정보 운영 인턴 채용</h3>
-            <p class="recommendation-reason"></p>
-            <div class="job-details">
-              <span>근무지역: 부산</span>
-              <span>마감일: 2026. 09. 22.</span>
-            </div>
-            <a class="source-link" href="https://example.com/jobs/busan" target="_blank" rel="noreferrer">원문 링크</a>
-          </article>
-        </div>
+        <div class="job-list"></div>
       </section>
     </main>
     <script>
@@ -249,8 +194,48 @@
       const keywordInput = document.querySelector("#keyword");
       const searchButton = document.querySelector("#search-button");
       const jobList = document.querySelector(".job-list");
-      const jobCards = Array.from(document.querySelectorAll(".job-card"));
       const priorityRegions = ["대전", "세종", "충남"];
+
+      function createTextElement(tagName, className, text) {
+        const element = document.createElement(tagName);
+        element.className = className;
+        element.textContent = text || "";
+        return element;
+      }
+
+      function renderJobs(jobs) {
+        jobs.forEach((job) => {
+          const card = document.createElement("article");
+          card.className = "job-card";
+          card.dataset.region = job.workRgnNmLst || "";
+          card.dataset.remote = "";
+          card.dataset.job = "";
+          card.dataset.duties = "";
+
+          const organization = createTextElement("p", "organization", job.instNm);
+          const title = createTextElement("h3", "", job.recrutPbancTtl);
+          const reason = createTextElement("p", "recommendation-reason", "");
+          const details = document.createElement("div");
+          details.className = "job-details";
+          details.append(
+            createTextElement("span", "", `근무지역: ${job.workRgnNmLst || ""}`),
+            createTextElement("span", "", `마감일: ${job.pbancEndYmd || ""}`)
+          );
+
+          const source = job.srcUrl
+            ? Object.assign(document.createElement("a"), {
+                className: "source-link",
+                href: job.srcUrl,
+                target: "_blank",
+                rel: "noreferrer",
+                textContent: "원문 링크",
+              })
+            : createTextElement("span", "source-link", "");
+
+          card.append(organization, title, reason, details, source);
+          jobList.append(card);
+        });
+      }
 
       function getRecommendation(card) {
         const reasons = [];
@@ -283,6 +268,7 @@
 
       function applyFiltersAndRecommendations() {
         const selectedLocation = locationSelect.value;
+        const jobCards = Array.from(jobList.querySelectorAll(".job-card"));
         const rankedCards = jobCards
           .map((card, index) => ({ card, index, ...getRecommendation(card) }))
           .sort((a, b) => b.score - a.score || a.index - b.index);
@@ -299,7 +285,12 @@
         applyFiltersAndRecommendations();
       });
 
-      applyFiltersAndRecommendations();
+      fetch("./jobs.json")
+        .then((response) => response.json())
+        .then((jobs) => {
+          renderJobs(jobs);
+          applyFiltersAndRecommendations();
+        });
     </script>
   </body>
 </html>
