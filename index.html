@@ -180,8 +180,9 @@
             .split(",")
             .map((region) => region.trim());
           card.hidden = selectedLocation !== "" && !jobRegions.includes(selectedLocation);
-          card.querySelector(".recommendation-reason").textContent =
-            `추천 이유: ${reasons.join(" · ") || "추천 규칙 미일치"}`;
+          const reasonElement = card.querySelector(".recommendation-reason");
+          reasonElement.hidden = reasons.length === 0;
+          reasonElement.textContent = reasons.length ? `추천 이유: ${reasons.join(" · ")}` : "";
           jobList.append(card);
         });
       }
