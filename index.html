@@ -191,8 +191,11 @@
         applyFiltersAndRecommendations();
       });
 
-      fetch("./jobs.json")
-        .then((response) => response.json())
+      fetch("/api/jobs")
+        .then((response) => {
+          if (!response.ok) throw new Error("채용 공고 요청 실패");
+          return response.json();
+        })
         .then((jobs) => {
           renderJobs(jobs);
           applyFiltersAndRecommendations();
