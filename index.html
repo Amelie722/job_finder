@@ -14,6 +14,8 @@
       .brand { margin: 0; font-size: 23px; letter-spacing: -0.05em; }
       .site-header nav { display: flex; gap: 32px; font-size: 15px; font-weight: 700; color: #d7e1f2; }
       .site-header nav span:first-child { color: #fff; }
+      .site-header .nav-button { width: auto; min-width: 0; height: auto; padding: 0; color: #d7e1f2; background: transparent; font-size: 15px; font-weight: 700; }
+      .site-header .nav-button.active { color: #fff; }
       main { width: min(100% - 48px, 1280px); margin: 0 auto; padding: 62px 0 88px; }
       .page-intro { display: flex; align-items: end; justify-content: space-between; margin-bottom: 28px; }
       h1 { margin: 0; font-size: clamp(34px, 4vw, 46px); letter-spacing: -0.06em; }
@@ -53,7 +55,7 @@
   <body>
     <header class="site-header">
       <h2 class="brand">내 채용공고</h2>
-      <nav aria-label="주 메뉴"><span>채용정보</span><span>커리어 가이드</span><span>기업 탐색</span></nav>
+      <nav aria-label="주 메뉴"><span>채용정보</span><span>커리어 가이드</span><span>기업 탐색</span><button id="scraps-menu" class="nav-button" type="button">담은 공고</button></nav>
     </header>
     <main>
       <div class="page-intro">
@@ -102,7 +104,10 @@
       const keywordInput = document.querySelector("#keyword");
       const searchButton = document.querySelector("#search-button");
       const jobList = document.querySelector(".job-list");
+      const scrapsMenu = document.querySelector("#scraps-menu");
       const priorityRegions = ["대전", "세종", "충남"];
+      let showingScraps = false;
+      let savedJobIds = new Set();
 
       function createTextElement(tagName, className, text) {
         const element = document.createElement(tagName);
@@ -195,7 +200,9 @@
           const jobRegions = card.dataset.region
             .split(",")
             .map((region) => region.trim());
-          card.hidden = selectedLocation !== "" && !jobRegions.includes(selectedLocation);
+          const isOutsideSelectedRegion = selectedLocation !== "" && !jobRegions.includes(selectedLocation);
+          const isNotScrapped = showingScraps && !savedJobIds.has(Number(card.dataset.jobId));
+          card.hidden = isOutsideSelectedRegion || isNotScrapped;
           const reasonElement = card.querySelector(".recommendation-reason");
           reasonElement.hidden = reasons.length === 0;
           reasonElement.textContent = reasons.length ? `추천 이유: ${reasons.join(" · ")}` : "";
@@ -225,6 +232,31 @@
         }
 
         button.textContent = "담김";
+        savedJobIds.add(Number(button.dataset.jobId));
+      });
+
+      scrapsMenu.addEventListener("click", async () => {
+        if (showingScraps) {
+          showingScraps = false;
+          scrapsMenu.classList.remove("active");
+          scrapsMenu.textContent = "담은 공고";
+          applyFiltersAndRecommendations();
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from("scraps")
+          .select("job_recrutpblntsn");
+        if (error) {
+          alert("담은 공고를 불러오지 못했습니다.");
+          return;
+        }
+
+        savedJobIds = new Set(data.map((scrap) => Number(scrap.job_recrutpblntsn)));
+        showingScraps = true;
+        scrapsMenu.classList.add("active");
+        scrapsMenu.textContent = "전체 공고";
+        applyFiltersAndRecommendations();
       });
 
       supabaseClient
